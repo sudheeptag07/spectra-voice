@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100vh;
+  color: #f3f4f6;
+  background:
+    radial-gradient(circle at 50% -20%, rgba(43, 88, 255, 0.14), transparent 42%),
+    linear-gradient(180deg, #030405 0%, #020304 60%, #030506 100%);
+}
+
+.glass-panel {
+  @apply rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-sm shadow-glass;
+}
+
+.muted {
+  color: #9ca3af;
+}
+
+.spectra-heading {
+  @apply font-display font-semibold tracking-tight;
+}
