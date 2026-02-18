@@ -1,13 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 type State = 'idle' | 'loading' | 'error';
 
 export default function DashboardLoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
   const [state, setState] = useState<State>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +28,10 @@ export default function DashboardLoginPage() {
         throw new Error(payload.error || 'Login failed.');
       }
 
-      const next = searchParams.get('next') || '/dashboard';
+      const next =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('next') || '/dashboard'
+          : '/dashboard';
       router.push(next);
       router.refresh();
     } catch (err) {
