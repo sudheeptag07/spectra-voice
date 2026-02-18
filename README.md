@@ -34,6 +34,7 @@ Copy `.env.example` to `.env` and set values:
 - `GEMINI_MODEL` (optional, default `gemini-2.5-flash`)
 - `ELEVENLABS_AGENT_ID` (server diagnostic)
 - `NEXT_PUBLIC_ELEVENLABS_AGENT_ID` (client websocket)
+- `DASHBOARD_PASSWORD` (optional; protects `/dashboard` routes when set)
 
 ## Run
 
