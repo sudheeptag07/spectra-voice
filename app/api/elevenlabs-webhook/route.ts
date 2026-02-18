@@ -26,24 +26,44 @@ function pickCandidateId(body: Record<string, unknown>): string | null {
   const dynamicVariables = asRecord(body.dynamic_variables);
   const convoInitiation = asRecord(body.conversation_initiation_client_data);
   const convoDynamicVariables = asRecord(convoInitiation.dynamic_variables);
+  const data = asRecord(body.data);
+  const dataConvoInitiation = asRecord(data.conversation_initiation_client_data);
+  const dataConvoDynamicVariables = asRecord(dataConvoInitiation.dynamic_variables);
   const metadata = asRecord(body.metadata);
   const metadataDynamicVariables = asRecord(metadata.dynamic_variables);
+  const dataMetadata = asRecord(data.metadata);
+  const dataMetadataDynamicVariables = asRecord(dataMetadata.dynamic_variables);
 
   return pickFirstString(
     dynamicVariables.candidate_id,
     dynamicVariables.candidateId,
     convoDynamicVariables.candidate_id,
     convoDynamicVariables.candidateId,
+    dataConvoDynamicVariables.candidate_id,
+    dataConvoDynamicVariables.candidateId,
     metadataDynamicVariables.candidate_id,
     metadataDynamicVariables.candidateId,
+    dataMetadataDynamicVariables.candidate_id,
+    dataMetadataDynamicVariables.candidateId,
+    data.user_id,
     body.candidate_id,
     body.candidateId
   );
 }
 
 function pickCallId(body: Record<string, unknown>, candidateId: string) {
+  const data = asRecord(body.data);
   return (
-    pickFirstString(body.call_id, body.conversation_id, body.id, body.event_id, body.session_id) ||
+    pickFirstString(
+      body.call_id,
+      body.conversation_id,
+      body.id,
+      body.event_id,
+      body.session_id,
+      data.call_id,
+      data.conversation_id,
+      data.id
+    ) ||
     `fallback-${candidateId}-${Date.now()}`
   );
 }
@@ -54,7 +74,14 @@ function extractTranscriptEntries(raw: unknown): Array<{ role: string; text: str
     return trimmed ? [{ role: 'conversation', text: trimmed }] : [];
   }
 
-  if (!Array.isArray(raw)) return [];
+  if (!Array.isArray(raw)) {
+    const obj = asRecord(raw);
+    const nested = obj.turns ?? obj.messages ?? obj.transcript;
+    if (nested) {
+      return extractTranscriptEntries(nested);
+    }
+    return [];
+  }
 
   const entries: Array<{ role: string; text: string }> = [];
   for (const item of raw) {
@@ -73,9 +100,11 @@ function extractTranscriptEntries(raw: unknown): Array<{ role: string; text: str
 }
 
 function pickTranscript(body: Record<string, unknown>): string {
+  const data = asRecord(body.data);
   const candidates = [
     body.transcript,
-    asRecord(body.data).transcript,
+    data.transcript,
+    asRecord(data.analysis).transcript,
     asRecord(body.conversation).transcript,
     asRecord(body.analysis).transcript,
     asRecord(body.event).transcript
@@ -86,16 +115,23 @@ function pickTranscript(body: Record<string, unknown>): string {
     if (entries.length > 0) return transcriptToText(entries);
   }
 
-  const rawText = pickFirstString(body.transcript_text, asRecord(body.analysis).transcript_text);
+  const rawText = pickFirstString(
+    body.transcript_text,
+    asRecord(body.analysis).transcript_text,
+    data.transcript_text,
+    asRecord(data.analysis).transcript_text
+  );
   return rawText || '';
 }
 
 function pickAudioUrl(body: Record<string, unknown>): string | null {
+  const data = asRecord(body.data);
   return pickFirstString(
     body.audio_url,
-    asRecord(body.data).audio_url,
+    data.audio_url,
     asRecord(body.conversation).audio_url,
     asRecord(body.analysis).audio_url,
+    data.recording_url,
     body.recording_url
   );
 }
@@ -105,6 +141,7 @@ export async function POST(request: Request) {
     const body = asRecord(await request.json());
     const candidateId = pickCandidateId(body);
     if (!candidateId) {
+      console.error('ElevenLabs webhook missing candidate id', { keys: Object.keys(body), event: body.type });
       return NextResponse.json({ error: 'candidateId missing in dynamic variables.' }, { status: 400 });
     }
 
@@ -137,6 +174,7 @@ export async function POST(request: Request) {
           `Overall: ${scored.overallFeedback}`
         ].join('\n\n');
       } catch {
+        console.error('Gemini scoring failed for webhook', { callId, candidateId });
         agentSummary = 'Interview captured, but Gemini scoring failed for this attempt.';
       }
     } else {
