@@ -13,7 +13,7 @@ export default function ThankYouPage() {
         <p className="mt-7 text-base text-slate-500">You will receive an email update within 48 hours regarding the next steps.</p>
         <Link
           href="/"
-          className="mt-8 inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-lg font-semibold text-white transition hover:text-sky-300"
+          className="mt-8 inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-lg font-semibold text-white transition hover:text-[#F14724]"
         >
           Return Home
           <ArrowRight className="h-5 w-5" />

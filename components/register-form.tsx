@@ -87,7 +87,7 @@ export function RegisterForm() {
 
       <div className="space-y-3">
         <label className="text-sm text-slate-300">Upload CV (PDF)</label>
-        <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-6 py-9 text-center transition hover:border-sky-300/40 hover:bg-white/[0.04]">
+        <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-6 py-9 text-center transition hover:border-[#F14724]/50 hover:bg-white/[0.04]">
           <input
             type="file"
             accept="application/pdf"
@@ -107,7 +107,7 @@ export function RegisterForm() {
       <button
         type="submit"
         disabled={state === 'registering' || state === 'uploading'}
-        className="mx-auto flex items-center gap-2 rounded-2xl px-3 py-3 text-lg font-semibold text-white transition hover:text-sky-300 disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
+        className="mx-auto flex items-center gap-2 rounded-2xl px-3 py-3 text-lg font-semibold text-white transition hover:text-[#F14724] disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
       >
         {state === 'registering' ? 'Creating profile...' : state === 'uploading' ? 'Analyzing CV...' : 'Start Interview'}
         <ArrowRight className="h-5 w-5" />

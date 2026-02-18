@@ -55,7 +55,10 @@ export function DashboardTable() {
         </td>
         <td className="px-4 py-3 text-slate-300">{new Date(candidate.created_at).toLocaleString()}</td>
         <td className="px-4 py-3">
-          <Link href={`/dashboard/candidates/${candidate.id}`} className="text-cyan-300 underline underline-offset-4">
+          <Link
+            href={`/dashboard/candidates/${candidate.id}`}
+            className="text-[#F14724] underline underline-offset-4 transition hover:opacity-85"
+          >
             View
           </Link>
         </td>
