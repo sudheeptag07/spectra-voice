@@ -85,15 +85,27 @@ async function ensureColumns() {
   if (!hasFeedbackJson) {
     await db.execute(`ALTER TABLE interviews ADD COLUMN feedback_json TEXT`);
   }
+
+  // Backfill legacy rows so previously computed scores remain visible.
+  await db.execute(
+    `UPDATE candidates
+     SET score_status = 'computed'
+     WHERE ai_score IS NOT NULL
+       AND (score_status IS NULL OR score_status = 'missing')`
+  );
 }
 
 function mapCandidate(row: Record<string, unknown>): Candidate {
   const rawStatus = (row.score_status as string | null) ?? null;
-  const derivedScoreStatus: ScoreStatus = rawStatus === 'computed' || rawStatus === 'error' || rawStatus === 'missing'
-    ? rawStatus
-    : row.ai_score === null
-      ? 'missing'
-      : 'computed';
+  const hasScore = row.ai_score !== null && row.ai_score !== undefined;
+  const derivedScoreStatus: ScoreStatus =
+    rawStatus === 'error'
+      ? 'error'
+      : hasScore
+        ? 'computed'
+        : rawStatus === 'missing' || rawStatus === 'computed'
+          ? rawStatus
+          : 'missing';
 
   return {
     id: String(row.id),
