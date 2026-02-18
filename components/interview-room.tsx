@@ -16,6 +16,10 @@ function formatError(error: unknown) {
   return error instanceof Error ? error.message : 'Unknown error';
 }
 
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
 }
@@ -162,8 +166,12 @@ export function InterviewRoom({ candidateId }: Props) {
     sessionStartedRef.current = false;
     connectedAtRef.current = null;
     userEndedRef.current = false;
-    await persistInterviewFromClient();
-    await setStatus('completed');
+    const persistTask = persistInterviewFromClient();
+    const statusTask = setStatus('completed');
+
+    // Never block navigation indefinitely on network/webhook calls.
+    await Promise.race([Promise.allSettled([persistTask, statusTask]), sleep(1200)]);
+
     setState('completed');
     router.push(`/thank-you?id=${candidateId}`);
   }
@@ -264,7 +272,8 @@ export function InterviewRoom({ candidateId }: Props) {
     userEndedRef.current = true;
     isEndingRef.current = true;
     try {
-      await conversation.endSession();
+      // Bound endSession wait so UI does not get stuck.
+      await Promise.race([conversation.endSession(), sleep(1500)]);
     } catch {
       // Ignore local disconnection errors and still complete the interview status.
     } finally {
