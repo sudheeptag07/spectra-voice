@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 220" role="img" aria-label="Skylark Drones logo">
+  <g fill="none" fill-rule="evenodd">
+    <text x="8" y="76" fill="#8C8F95" font-family="Arial, Helvetica, sans-serif" font-size="78" letter-spacing="3">SK</text>
+    <path d="M150 78L226 22L212 78H150Z" fill="#FF622A"/>
+    <path d="M226 22L270 60L216 138L186 102Z" fill="#FF622A"/>
+    <path d="M234 84L322 0H428L318 114L358 220L234 84Z" fill="#FF622A"/>
+    <text x="454" y="76" fill="#8C8F95" font-family="Arial, Helvetica, sans-serif" font-size="78" letter-spacing="3">LARK</text>
+    <text x="8" y="196" fill="#FF622A" font-family="Arial, Helvetica, sans-serif" font-size="112" letter-spacing="4">DRONES</text>
+  </g>
+</svg>

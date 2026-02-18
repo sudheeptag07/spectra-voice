@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useConversation } from '@elevenlabs/react';
 import { AudioLines, CheckCircle2, Mic, PhoneOff, Volume2, Zap } from 'lucide-react';
@@ -278,9 +277,6 @@ export function InterviewRoom({ candidateId }: Props) {
   if (!enteredRoom) {
     return (
       <section className="mx-auto mt-10 max-w-5xl text-center">
-        <p className="mx-auto inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-4 py-1 text-sm text-sky-300">
-          ✧ The future of GTM Hiring
-        </p>
         <h1 className="spectra-heading mt-5 text-4xl md:text-6xl">
           <span className="text-white">Spectra </span>
           <span className="bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Voice</span>
@@ -351,9 +347,6 @@ export function InterviewRoom({ candidateId }: Props) {
           </button>
         ) : null}
 
-        <Link href="/" className="rounded-2xl border border-white/20 px-4 py-3 text-sm text-slate-300 hover:bg-white/[0.04]">
-          Exit
-        </Link>
       </div>
 
       {error ? <p className="mt-5 text-sm text-rose-300">{error}</p> : null}

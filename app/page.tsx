@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { Shield, Zap, Sparkles } from 'lucide-react';
 import { RegisterForm } from '@/components/register-form';
 
@@ -24,9 +23,6 @@ export default function HomePage() {
   return (
     <main className="mx-auto max-w-5xl pb-14 pt-4">
       <section className="text-center">
-        <p className="mx-auto inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-4 py-1 text-sm text-sky-300">
-          ✧ The future of GTM Hiring
-        </p>
         <h1 className="spectra-heading mt-5 text-5xl leading-none md:text-7xl">
           <span className="text-white">Spectra </span>
           <span className="bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Voice</span>
@@ -52,11 +48,6 @@ export default function HomePage() {
         ))}
       </div>
 
-      <div className="mt-16 text-center">
-        <Link href="/dashboard" className="text-sm text-sky-300 underline underline-offset-4">
-          Open Hiring Dashboard
-        </Link>
-      </div>
     </main>
   );
 }
