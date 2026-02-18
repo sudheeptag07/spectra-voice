@@ -22,16 +22,19 @@ const highlights = [
 export default function HomePage() {
   return (
     <main className="mx-auto max-w-5xl pb-14 pt-4">
-      <section className="text-center">
-        <div className="hero-heading-wrap mt-5">
+      <div className="landing-mesh" aria-hidden />
+      <section className="relative z-10 text-center">
+        <div className="hero-heading-wrap intro-reveal reveal-1 mt-5">
           <div className="hero-heading-glow" aria-hidden />
           <h1 className="spectra-heading relative z-10 text-5xl leading-none md:text-7xl">
             <span className="text-white">Spectra </span>
             <span className="bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Voice</span>
           </h1>
         </div>
-        <p className="muted mx-auto mt-5 max-w-3xl text-base leading-relaxed md:text-xl">Our AI would like to have a word with you.</p>
-        <div className="voice-wave" aria-hidden>
+        <p className="muted intro-reveal reveal-2 mx-auto mt-5 max-w-3xl text-base leading-relaxed md:text-xl">
+          Our AI would like to have a word with you.
+        </p>
+        <div className="voice-wave intro-reveal reveal-3" aria-hidden>
           <span />
           <span />
           <span />
@@ -40,7 +43,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="mt-12 flex justify-center">
+      <div className="form-spotlight-wrap intro-reveal reveal-4 relative z-10 mt-12 flex justify-center">
         <RegisterForm />
       </div>
 

@@ -26,6 +26,78 @@ body {
   @apply font-display font-semibold tracking-tight;
 }
 
+.landing-mesh {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: #020306;
+  overflow: hidden;
+}
+
+.landing-mesh::before,
+.landing-mesh::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  filter: blur(80px);
+  will-change: transform;
+}
+
+.landing-mesh::before {
+  background:
+    radial-gradient(circle at 18% 24%, rgba(59, 130, 246, 0.22) 0%, transparent 52%),
+    radial-gradient(circle at 78% 26%, rgba(139, 92, 246, 0.2) 0%, transparent 56%);
+  animation: mesh-drift-a 24s ease-in-out infinite alternate;
+}
+
+.landing-mesh::after {
+  background: radial-gradient(circle at 56% 78%, rgba(241, 71, 36, 0.14) 0%, transparent 58%);
+  animation: mesh-drift-b 28s ease-in-out infinite alternate;
+}
+
+.form-spotlight-wrap {
+  position: relative;
+  isolation: isolate;
+}
+
+.form-spotlight-wrap::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: min(760px, 92vw);
+  height: min(420px, 66vh);
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.1) 0%, rgba(148, 163, 184, 0.06) 36%, transparent 72%);
+  filter: blur(36px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.intro-reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: intro-reveal 560ms ease-out forwards;
+}
+
+.reveal-1 {
+  animation-delay: 40ms;
+}
+
+.reveal-2 {
+  animation-delay: 140ms;
+}
+
+.reveal-3 {
+  animation-delay: 240ms;
+}
+
+.reveal-4 {
+  animation-delay: 340ms;
+}
+
 .hero-heading-wrap {
   position: relative;
   display: inline-flex;
@@ -97,5 +169,55 @@ body {
   50% {
     height: 15px;
     opacity: 1;
+  }
+}
+
+@keyframes mesh-drift-a {
+  0% {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2%, 1%, 0) scale(1.03);
+  }
+  100% {
+    transform: translate3d(0%, 2%, 0) scale(1.01);
+  }
+}
+
+@keyframes mesh-drift-b {
+  0% {
+    transform: translate3d(1%, 1%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-2%, -1%, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(1%, -2%, 0) scale(1.01);
+  }
+}
+
+@keyframes intro-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-mesh::before,
+  .landing-mesh::after,
+  .hero-heading-glow,
+  .voice-wave span,
+  .intro-reveal {
+    animation: none !important;
+  }
+
+  .intro-reveal {
+    opacity: 1;
+    transform: none;
   }
 }
