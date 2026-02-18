@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getCandidateById, updateCandidateScore, updateCandidateStatus, upsertInterview } from '@/lib/db';
+import { getCandidateById, updateCandidateScore, updateCandidateScoreStatus, updateCandidateStatus, upsertInterview } from '@/lib/db';
 import { scoreInterview } from '@/lib/gemini';
+import type { InterviewFeedback } from '@/lib/types';
 
 function transcriptToText(transcript: Array<{ role: string; text: string }> = []) {
   return transcript.map((row) => `${row.role}: ${row.text}`).join('\n');
@@ -155,6 +156,13 @@ export async function POST(request: Request) {
     const audioUrl = pickAudioUrl(body);
 
     let score: number | null = null;
+    let scoreStatus: 'computed' | 'missing' | 'error' = 'missing';
+    let feedback: InterviewFeedback = {
+      overall_score: null,
+      score_status: 'missing',
+      criteria: [],
+      overall_feedback: 'AI feedback pending.'
+    };
     let agentSummary = 'AI feedback pending.';
 
     if (transcript.trim().length > 0) {
@@ -163,22 +171,35 @@ export async function POST(request: Request) {
           cvSummary: candidate.cv_summary || '',
           transcript
         });
-        score = scored.score;
+        feedback = scored;
+        score = typeof scored.overall_score === 'number' ? scored.overall_score : null;
+        scoreStatus = score === null ? 'missing' : 'computed';
+        feedback.score_status = scoreStatus;
         agentSummary = [
-          `Overall Score: ${scored.score}/100`,
-          `Ownership: ${scored.ownership}`,
-          `Accountability: ${scored.accountability}`,
-          `Collaboration: ${scored.collaboration}`,
-          `Customer Empathy: ${scored.customerEmpathy}`,
-          `Adaptability & Ambiguity: ${scored.adaptabilityAmbiguity}`,
-          `Overall: ${scored.overallFeedback}`
+          `Overall Score: ${score ?? '--'}/100`,
+          `Status: ${scoreStatus}`,
+          `Overall: ${feedback.overall_feedback || 'No overall feedback available.'}`
         ].join('\n\n');
       } catch {
         console.error('Gemini scoring failed for webhook', { callId, candidateId });
-        agentSummary = 'Interview captured, but Gemini scoring failed for this attempt.';
+        scoreStatus = 'error';
+        feedback = {
+          overall_score: null,
+          score_status: 'error',
+          criteria: [],
+          overall_feedback: 'Interview captured, but Gemini scoring failed for this attempt.'
+        };
+        agentSummary = feedback.overall_feedback || 'Interview captured, but Gemini scoring failed for this attempt.';
       }
     } else {
-      agentSummary = 'Interview captured, but transcript was empty in webhook payload.';
+      scoreStatus = 'missing';
+      feedback = {
+        overall_score: null,
+        score_status: 'missing',
+        criteria: [],
+        overall_feedback: 'Interview captured, but transcript was empty in webhook payload.'
+      };
+      agentSummary = feedback.overall_feedback || 'Interview captured, but transcript was empty in webhook payload.';
     }
 
     await upsertInterview({
@@ -186,16 +207,23 @@ export async function POST(request: Request) {
       candidateId,
       transcript,
       agentSummary,
+      feedbackJson: feedback,
       audioUrl
     });
 
-    if (score !== null) {
+    if (score !== null && scoreStatus === 'computed') {
       await updateCandidateScore(candidateId, score);
     } else {
-      await updateCandidateStatus(candidateId, 'completed');
+      if (scoreStatus === 'error') {
+        await updateCandidateScoreStatus(candidateId, 'error');
+      } else if (scoreStatus === 'missing') {
+        await updateCandidateScoreStatus(candidateId, 'missing');
+      } else {
+        await updateCandidateStatus(candidateId, 'completed');
+      }
     }
 
-    return NextResponse.json({ ok: true, score, callId });
+    return NextResponse.json({ ok: true, score, scoreStatus, callId });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
