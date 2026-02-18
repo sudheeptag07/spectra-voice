@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Upload } from 'lucide-react';
+import { ArrowRight, Loader2, Upload } from 'lucide-react';
 
 type SubmissionState = 'idle' | 'registering' | 'uploading' | 'ready' | 'error';
 
@@ -109,8 +109,17 @@ export function RegisterForm() {
         disabled={state === 'registering' || state === 'uploading'}
         className="mx-auto flex items-center gap-2 rounded-2xl px-3 py-3 text-lg font-semibold text-white transition hover:text-[#F14724] disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
       >
-        {state === 'registering' ? 'Creating profile...' : state === 'uploading' ? 'Analyzing CV...' : 'Start Interview'}
-        <ArrowRight className="h-5 w-5" />
+        {state === 'registering' || state === 'uploading' ? (
+          <>
+            <Loader2 className="h-5 w-5 animate-spin" />
+            {state === 'registering' ? 'Creating profile...' : 'Analyzing CV...'}
+          </>
+        ) : (
+          <>
+            Start Interview
+            <ArrowRight className="h-5 w-5" />
+          </>
+        )}
       </button>
     </form>
   );
