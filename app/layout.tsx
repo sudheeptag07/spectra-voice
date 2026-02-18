@@ -13,9 +13,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased">
         <div className="cinematic-mesh" aria-hidden />
         <div className="mx-auto min-h-screen w-full max-w-7xl px-4 py-6 md:px-8">
-          <header className="relative z-30 mb-6 flex items-center justify-between rounded-2xl border border-white/10 bg-black/35 px-3 py-2">
-            <SkylarkBrand />
+          <header className="app-header relative z-30 mb-5 flex items-center">
+            <SkylarkBrand compact />
           </header>
+          <div className="header-divider relative z-20 mb-5" aria-hidden />
           <div className="relative z-10 screen-reveal">{children}</div>
         </div>
       </body>
