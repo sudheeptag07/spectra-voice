@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="font-sans antialiased">
         <div className="mx-auto min-h-screen w-full max-w-7xl px-4 py-6 md:px-8">
-          <header className="mb-6 flex items-center justify-between rounded-2xl border border-white/10 bg-black/35 px-3 py-2">
+          <header className="relative z-30 mb-6 flex items-center justify-between rounded-2xl border border-white/10 bg-black/35 px-3 py-2">
             <SkylarkBrand />
           </header>
           {children}
