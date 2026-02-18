@@ -56,7 +56,7 @@ export default function DashboardLoginPage() {
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-xl border border-white/15 bg-black/20 px-4 py-2 outline-none ring-sky-400/50 focus:ring"
+              className="spectra-input w-full rounded-xl border border-white/15 bg-black/20 px-4 py-2"
             />
           </div>
 
@@ -65,7 +65,7 @@ export default function DashboardLoginPage() {
           <button
             type="submit"
             disabled={state === 'loading'}
-            className="w-full rounded-xl bg-sky-300 px-4 py-2 font-semibold text-slate-900 disabled:opacity-60"
+            className="w-full rounded-xl bg-[#F14724] px-4 py-2 font-semibold text-white transition hover:bg-[#ff6a3d] disabled:opacity-60"
           >
             {state === 'loading' ? 'Checking...' : 'Open Dashboard'}
           </button>

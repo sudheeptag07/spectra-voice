@@ -22,7 +22,6 @@ const highlights = [
 export default function HomePage() {
   return (
     <main className="mx-auto max-w-5xl pb-14 pt-4">
-      <div className="landing-mesh" aria-hidden />
       <section className="relative z-10 text-center">
         <div className="hero-heading-wrap intro-reveal reveal-1 mt-5">
           <div className="hero-heading-glow" aria-hidden />

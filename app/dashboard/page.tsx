@@ -11,7 +11,7 @@ export default function DashboardPage() {
           <p className="muted mt-1 text-sm">Monitor status, scores, transcripts, and interview artifacts.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/" className="rounded-xl border border-white/20 px-4 py-2 text-sm">
+          <Link href="/" className="rounded-xl border border-white/20 px-4 py-2 text-sm transition hover:border-[#F14724]/60 hover:text-[#F14724]">
             Candidate Landing
           </Link>
           <DashboardLogout />
