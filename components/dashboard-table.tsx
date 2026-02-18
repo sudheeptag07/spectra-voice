@@ -28,6 +28,9 @@ function scoreBucket(score: number) {
 export function DashboardTable() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
@@ -74,6 +77,10 @@ export function DashboardTable() {
     });
   }, [candidates, statusFilter, scoreFilter, dateFilter]);
 
+  const visibleIdSet = useMemo(() => new Set(filtered.map((c) => c.id)), [filtered]);
+  const selectedVisibleCount = useMemo(() => selectedIds.filter((id) => visibleIdSet.has(id)).length, [selectedIds, visibleIdSet]);
+  const allVisibleSelected = filtered.length > 0 && selectedVisibleCount === filtered.length;
+
   const stats = useMemo(() => {
     const total = candidates.length;
     const completedToday = candidates.filter((c) => c.status === 'completed' && isToday(new Date(c.created_at))).length;
@@ -84,6 +91,54 @@ export function DashboardTable() {
   }, [candidates]);
 
   const chipBase = 'rounded-full border px-3 py-1 text-xs transition';
+
+  function toggleSelectAllVisible() {
+    if (allVisibleSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !visibleIdSet.has(id)));
+      return;
+    }
+    setSelectedIds((prev) => {
+      const merged = new Set(prev);
+      for (const candidate of filtered) merged.add(candidate.id);
+      return Array.from(merged);
+    });
+  }
+
+  function toggleSelectOne(id: string) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  async function handleDeleteSelected() {
+    const idsToDelete = selectedIds.filter((id) => visibleIdSet.has(id));
+    if (idsToDelete.length === 0 || deleting) return;
+    const ok = window.confirm(`Delete ${idsToDelete.length} selected candidate(s)? This cannot be undone.`);
+    if (!ok) return;
+
+    setDeleting(true);
+    setActionError(null);
+    try {
+      const results = await Promise.all(
+        idsToDelete.map(async (id) => {
+          const response = await fetch(`/api/candidates/${id}`, { method: 'DELETE' });
+          return response.ok;
+        })
+      );
+      if (results.some((result) => !result)) {
+        setActionError('Some candidates could not be deleted.');
+      }
+
+      const response = await fetch('/api/candidates', { cache: 'no-store' });
+      if (response.ok) {
+        const data = (await response.json()) as ListResponse;
+        setCandidates(data.candidates);
+      }
+      setSelectedIds((prev) => prev.filter((id) => !idsToDelete.includes(id)));
+    } catch {
+      setActionError('Delete failed. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -110,8 +165,18 @@ export function DashboardTable() {
         <div className="border-b border-white/10 px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-semibold">Candidate Pipeline</h2>
-            <span className="text-sm text-slate-300">{filtered.length} shown</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-300">{filtered.length} shown</span>
+              <button
+                onClick={handleDeleteSelected}
+                disabled={selectedVisibleCount === 0 || deleting}
+                className="rounded-full border border-rose-400/40 bg-rose-500/15 px-3 py-1 text-xs font-medium text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : `Delete Selected${selectedVisibleCount ? ` (${selectedVisibleCount})` : ''}`}
+              </button>
+            </div>
           </div>
+          {actionError ? <p className="mt-2 text-xs text-rose-300">{actionError}</p> : null}
           <div className="mt-3 flex flex-wrap gap-2">
             <button onClick={() => setStatusFilter('completed')} className={`${chipBase} ${statusFilter === 'completed' ? 'border-[#F14724]/60 bg-[#F14724]/15 text-[#F14724]' : 'border-white/15 text-slate-300'}`}>Completed</button>
             <button onClick={() => setStatusFilter('pending')} className={`${chipBase} ${statusFilter === 'pending' ? 'border-[#F14724]/60 bg-[#F14724]/15 text-[#F14724]' : 'border-white/15 text-slate-300'}`}>Pending</button>
@@ -136,6 +201,9 @@ export function DashboardTable() {
             <table className="w-full min-w-[900px]">
               <thead className="sticky top-0 z-10 bg-black/65 backdrop-blur-sm">
                 <tr className="text-left text-xs uppercase tracking-wide text-slate-400">
+                  <th className="px-4 py-3">
+                    <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} aria-label="Select all visible candidates" />
+                  </th>
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Status</th>
@@ -147,6 +215,14 @@ export function DashboardTable() {
               <tbody>
                 {filtered.map((candidate) => (
                   <tr key={candidate.id} className="border-b border-white/10 text-sm transition hover:bg-white/[0.03]">
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(candidate.id)}
+                        onChange={() => toggleSelectOne(candidate.id)}
+                        aria-label={`Select ${candidate.name}`}
+                      />
+                    </td>
                     <td className="px-4 py-3 text-slate-100">{candidate.name}</td>
                     <td className="px-4 py-3 text-slate-300">
                       <span title={candidate.email} className="block max-w-[230px] truncate">

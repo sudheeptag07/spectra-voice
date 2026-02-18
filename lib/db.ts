@@ -221,3 +221,20 @@ export async function listCandidates(): Promise<Candidate[]> {
   const result = await db.execute('SELECT * FROM candidates ORDER BY created_at DESC');
   return result.rows.map((row) => mapCandidate(row as Record<string, unknown>));
 }
+
+export async function deleteCandidateCascade(id: string): Promise<void> {
+  await ensureSchema();
+  await db.batch(
+    [
+      {
+        sql: 'DELETE FROM interviews WHERE candidate_id = ?',
+        args: [id]
+      },
+      {
+        sql: 'DELETE FROM candidates WHERE id = ?',
+        args: [id]
+      }
+    ],
+    'write'
+  );
+}

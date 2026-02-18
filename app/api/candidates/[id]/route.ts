@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCandidateById, updateCandidateStatus } from '@/lib/db';
+import { deleteCandidateCascade, getCandidateById, updateCandidateStatus } from '@/lib/db';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
@@ -44,6 +44,20 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
 
     await updateCandidateStatus(params.id, parsed.data.status);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+  }
+}
+
+export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+  try {
+    const existing = await getCandidateById(params.id);
+    if (!existing) {
+      return NextResponse.json({ error: 'Candidate not found.' }, { status: 404 });
+    }
+
+    await deleteCandidateCascade(params.id);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
