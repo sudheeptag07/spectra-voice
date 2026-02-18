@@ -13,16 +13,25 @@ export function CandidateDetail({ id }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
     async function load() {
       const response = await fetch(`/api/candidates/${id}`, { cache: 'no-store' });
       if (response.ok) {
         const data = (await response.json()) as CandidateWithInterview;
-        setRecord(data);
+        if (active) setRecord(data);
       }
-      setLoading(false);
+      if (active) setLoading(false);
     }
 
     void load();
+    const interval = window.setInterval(() => {
+      void load();
+    }, 10000);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
   }, [id]);
 
   if (loading) {

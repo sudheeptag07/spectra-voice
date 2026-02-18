@@ -21,16 +21,25 @@ export function DashboardTable() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
     async function load() {
       const response = await fetch('/api/candidates', { cache: 'no-store' });
       if (response.ok) {
         const data = (await response.json()) as ListResponse;
-        setCandidates(data.candidates);
+        if (active) setCandidates(data.candidates);
       }
-      setLoading(false);
+      if (active) setLoading(false);
     }
 
     void load();
+    const interval = window.setInterval(() => {
+      void load();
+    }, 10000);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
   }, []);
 
   const rows = useMemo(() => {

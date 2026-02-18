@@ -17,6 +17,39 @@ function formatError(error: unknown) {
   return error instanceof Error ? error.message : 'Unknown error';
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+}
+
+function pickMessageRow(payload: unknown): { role: string; text: string } | null {
+  const row = asRecord(payload);
+  const type = typeof row.type === 'string' ? row.type : '';
+
+  const userTranscript = asRecord(row.user_transcription_event).user_transcript;
+  if (type === 'user_transcript' && typeof userTranscript === 'string' && userTranscript.trim()) {
+    return { role: 'user', text: userTranscript.trim() };
+  }
+
+  const agentResponse = asRecord(row.agent_response_event).agent_response;
+  if (type === 'agent_response' && typeof agentResponse === 'string' && agentResponse.trim()) {
+    return { role: 'agent', text: agentResponse.trim() };
+  }
+
+  const text = row.text;
+  if (typeof text === 'string' && text.trim()) {
+    const role = typeof row.role === 'string' ? row.role : 'speaker';
+    return { role, text: text.trim() };
+  }
+
+  const message = row.message;
+  if (typeof message === 'string' && message.trim()) {
+    const role = typeof row.role === 'string' ? row.role : type || 'speaker';
+    return { role, text: message.trim() };
+  }
+
+  return null;
+}
+
 export function InterviewRoom({ candidateId }: Props) {
   const router = useRouter();
   const [state, setState] = useState<RoomState>('idle');
@@ -67,20 +100,9 @@ export function InterviewRoom({ candidateId }: Props) {
       setError(event || 'Unable to connect to ElevenLabs conversation service.');
     },
     onMessage: (message) => {
-      const payload = message as
-        | { type?: string; user_transcription_event?: { user_transcript?: string }; agent_response_event?: { agent_response?: string } }
-        | undefined;
-      if (!payload?.type) return;
-
-      if (payload.type === 'user_transcript') {
-        const text = payload.user_transcription_event?.user_transcript?.trim();
-        if (text) transcriptRef.current.push({ role: 'user', text });
-      }
-
-      if (payload.type === 'agent_response') {
-        const text = payload.agent_response_event?.agent_response?.trim();
-        if (text) transcriptRef.current.push({ role: 'agent', text });
-      }
+      const row = pickMessageRow(message);
+      if (!row) return;
+      transcriptRef.current.push(row);
     }
   });
 
