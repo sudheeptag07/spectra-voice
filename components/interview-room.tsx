@@ -290,9 +290,7 @@ export function InterviewRoom({ candidateId }: Props) {
           <span className="text-white">Spectra </span>
           <span className="bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Voice</span>
         </h1>
-        <p className="muted mx-auto mt-5 max-w-3xl text-base leading-relaxed md:text-xl">
-          Experience a 10-minute AI-powered screening interview designed for world-class Sales professionals at Skylark Drones.
-        </p>
+        <p className="muted mx-auto mt-5 max-w-3xl text-base leading-relaxed md:text-xl">Ready when you are!</p>
 
         <div className="glass-panel mx-auto mt-10 w-full max-w-xl p-8">
           <Zap className="mx-auto h-10 w-10 text-yellow-400" />
