@@ -11,6 +11,7 @@ type Props = {
 };
 
 type RoomState = 'idle' | 'connecting' | 'live' | 'completed' | 'error';
+const FINAL_CLOSE_LINE = 'Thank you. This interview is now complete.';
 
 function formatError(error: unknown) {
   return error instanceof Error ? error.message : 'Unknown error';
@@ -65,6 +66,7 @@ export function InterviewRoom({ candidateId }: Props) {
   const isStartingRef = useRef(false);
   const isEndingRef = useRef(false);
   const isFinalizingRef = useRef(false);
+  const agentEndedRef = useRef(false);
   const transcriptRef = useRef<Array<{ role: string; text: string }>>([]);
 
   const conversation = useConversation({
@@ -73,6 +75,7 @@ export function InterviewRoom({ candidateId }: Props) {
       sessionStartedRef.current = true;
       connectedAtRef.current = Date.now();
       userEndedRef.current = false;
+      agentEndedRef.current = false;
       void setStatus('interviewing');
     },
     onDisconnect: () => {
@@ -87,8 +90,14 @@ export function InterviewRoom({ candidateId }: Props) {
       const connectedAt = connectedAtRef.current ?? Date.now();
       const connectedMs = Date.now() - connectedAt;
       const canAutoComplete = sessionStartedRef.current && connectedMs >= 45000;
+      const lastAgentLine = [...transcriptRef.current]
+        .reverse()
+        .find((row) => row.role.toLowerCase().includes('agent'))?.text;
+      const agentSpokeFinalLine =
+        typeof lastAgentLine === 'string' &&
+        lastAgentLine.toLowerCase().includes(FINAL_CLOSE_LINE.toLowerCase());
 
-      if (userEndedRef.current || canAutoComplete) {
+      if (userEndedRef.current || canAutoComplete || agentEndedRef.current || agentSpokeFinalLine) {
         void finalizeInterview();
         return;
       }
@@ -103,9 +112,24 @@ export function InterviewRoom({ candidateId }: Props) {
       setError(event || 'Unable to connect to ElevenLabs conversation service.');
     },
     onMessage: (message) => {
+      const payload = asRecord(message);
+      const toolName =
+        typeof payload.tool_name === 'string'
+          ? payload.tool_name
+          : typeof asRecord(payload.tool).name === 'string'
+            ? String(asRecord(payload.tool).name)
+            : null;
+      const type = typeof payload.type === 'string' ? payload.type : '';
+      if ((type.toLowerCase().includes('tool') && toolName === 'end_call') || type === 'end_call') {
+        agentEndedRef.current = true;
+      }
+
       const row = pickMessageRow(message);
       if (!row) return;
       transcriptRef.current.push(row);
+      if (row.role.toLowerCase().includes('agent') && row.text.toLowerCase().includes(FINAL_CLOSE_LINE.toLowerCase())) {
+        agentEndedRef.current = true;
+      }
     }
   });
 
@@ -213,6 +237,7 @@ export function InterviewRoom({ candidateId }: Props) {
 
     try {
       userEndedRef.current = false;
+      agentEndedRef.current = false;
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
       const cvText = (candidate?.cv_text || '').slice(0, 3000);
