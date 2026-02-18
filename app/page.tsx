@@ -27,9 +27,7 @@ export default function HomePage() {
           <span className="text-white">Spectra </span>
           <span className="bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Voice</span>
         </h1>
-        <p className="muted mx-auto mt-5 max-w-3xl text-base leading-relaxed md:text-xl">
-          Experience a 10-minute AI-powered screening interview designed for world-class Sales professionals at Skylark Drones.
-        </p>
+        <p className="muted mx-auto mt-5 max-w-3xl text-base leading-relaxed md:text-xl">Our AI would like to have a word with you.</p>
       </section>
 
       <div className="mt-12 flex justify-center">
