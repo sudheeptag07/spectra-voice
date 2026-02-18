@@ -69,7 +69,7 @@ export function RegisterForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. John Doe"
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-base outline-none ring-sky-400/50 placeholder:text-slate-500 focus:ring"
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-base outline-none placeholder:text-slate-500 transition hover:border-[#F14724]/40 focus:border-[#F14724]/60 focus:ring-2 focus:ring-[#F14724]/45"
         />
       </div>
 
@@ -81,7 +81,7 @@ export function RegisterForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="e.g. john@example.com"
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-base outline-none ring-sky-400/50 placeholder:text-slate-500 focus:ring"
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-base outline-none placeholder:text-slate-500 transition hover:border-[#F14724]/40 focus:border-[#F14724]/60 focus:ring-2 focus:ring-[#F14724]/45"
         />
       </div>
 
