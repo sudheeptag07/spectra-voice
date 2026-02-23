@@ -35,6 +35,21 @@ async function generateWithFallback(prompt: string) {
   throw lastError ?? new Error('Unable to generate content with configured Gemini models.');
 }
 
+function parseJsonLoose(raw: string): Record<string, unknown> {
+  const cleaned = raw.replace(/```json|```/gi, '').trim();
+  try {
+    return JSON.parse(cleaned) as Record<string, unknown>;
+  } catch {
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      const maybe = cleaned.slice(start, end + 1);
+      return JSON.parse(maybe) as Record<string, unknown>;
+    }
+    throw new Error('Unable to parse Gemini JSON output.');
+  }
+}
+
 export async function analyzeCV(cvText: string): Promise<CVAnalysis> {
   const prompt = `You are an expert recruiter. Analyze this CV text and return strict JSON with keys: summary (exactly 3 sentences), keySkills (array of max 12 concise skills).\n\nCV:\n${cvText.slice(0, 12000)}`;
   const result = await generateWithFallback(prompt);
@@ -65,22 +80,34 @@ ${input.transcript.slice(0, 18000)}`;
 
   const result = await generateWithFallback(prompt);
   const raw = result.response.text();
+  let parsed = parseJsonLoose(raw) as Partial<InterviewFeedback>;
 
-  const sanitized = raw.replace(/```json|```/g, '').trim();
-  const parsed = JSON.parse(sanitized) as Partial<InterviewFeedback>;
+  // One retry with stricter format if first parse does not include core keys.
+  if (typeof parsed !== 'object' || parsed === null || (!('overall_score' in parsed) && !Array.isArray(parsed.criteria))) {
+    const retryResult = await generateWithFallback(`${prompt}\n\nReturn JSON only. No markdown, no explanations.`);
+    parsed = parseJsonLoose(retryResult.response.text()) as Partial<InterviewFeedback>;
+  }
   const boundedScore = Math.max(0, Math.min(100, Math.round(Number(parsed.overall_score ?? 0))));
 
   const criteria: FeedbackCriterion[] = Array.isArray(parsed.criteria)
     ? parsed.criteria
         .map((row) => ({
           name: String((row as { name?: string }).name ?? '').trim(),
-          rating: String((row as { rating?: string }).rating ?? '').trim().toLowerCase(),
+          rating: String((row as { rating?: string | number }).rating ?? '').trim().toLowerCase(),
           note: String((row as { note?: string }).note ?? '').trim()
         }))
         .filter((row) => row.name && row.note)
         .map((row) => ({
           name: row.name,
-          rating: (row.rating === 'good' || row.rating === 'bad' ? row.rating : 'neutral') as FeedbackCriterion['rating'],
+          rating: (() => {
+            if (row.rating === 'good' || row.rating === 'bad' || row.rating === 'neutral') return row.rating as FeedbackCriterion['rating'];
+            const numeric = Number(row.rating);
+            if (!Number.isNaN(numeric)) {
+              if (numeric >= 70) return 'good';
+              if (numeric <= 39) return 'bad';
+            }
+            return 'neutral';
+          })(),
           note: row.note
         }))
     : [];
