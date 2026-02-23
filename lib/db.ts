@@ -239,7 +239,17 @@ export async function getCandidateById(id: string): Promise<CandidateWithIntervi
   if (!candidateRow) return null;
 
   const interviewResult = await db.execute({
-    sql: 'SELECT * FROM interviews WHERE candidate_id = ? ORDER BY created_at DESC LIMIT 1',
+    sql: `SELECT *
+          FROM interviews
+          WHERE candidate_id = ?
+          ORDER BY
+            CASE
+              WHEN id LIKE 'conv_%' THEN 0
+              WHEN id LIKE 'call_%' THEN 0
+              ELSE 1
+            END,
+            created_at DESC
+          LIMIT 1`,
     args: [id]
   });
 
