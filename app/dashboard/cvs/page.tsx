@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { db, ensureSchema } from '@/lib/db';
+import { formatDateTimeIst } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -46,7 +47,7 @@ export default async function DashboardCVPage() {
                   <p className="text-sm text-slate-300">{row.email}</p>
                 </div>
                 <div className="text-right text-xs text-slate-400">
-                  <p>{new Date(row.created_at).toLocaleString()}</p>
+                  <p>{formatDateTimeIst(row.created_at)}</p>
                   <p className="mt-1">{row.cv_text.length.toLocaleString()} chars</p>
                 </div>
               </div>

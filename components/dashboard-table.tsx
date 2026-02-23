@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { StatusBadge } from '@/components/status-badge';
 import { ScoreBadge } from '@/components/score-badge';
+import { formatDateTimeIst, isTodayIst, toDate } from '@/lib/datetime';
 import type { Candidate } from '@/lib/types';
 
 type ListResponse = {
@@ -13,11 +14,6 @@ type ListResponse = {
 type StatusFilter = 'all' | 'completed' | 'pending' | 'error';
 type ScoreFilter = 'all' | 'high' | 'mid' | 'low';
 type DateFilter = 'all' | 'today' | '7d';
-
-function isToday(date: Date) {
-  const now = new Date();
-  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
-}
 
 function scoreBucket(score: number) {
   if (score >= 70) return 'high';
@@ -66,10 +62,10 @@ export function DashboardTable() {
       }
 
       if (dateFilter === 'today') {
-        if (!isToday(new Date(candidate.created_at))) return false;
+        if (!isTodayIst(candidate.created_at)) return false;
       }
       if (dateFilter === '7d') {
-        const ms = Date.now() - new Date(candidate.created_at).getTime();
+        const ms = Date.now() - toDate(candidate.created_at).getTime();
         if (ms > 7 * 24 * 60 * 60 * 1000) return false;
       }
 
@@ -83,7 +79,7 @@ export function DashboardTable() {
 
   const stats = useMemo(() => {
     const total = candidates.length;
-    const completedToday = candidates.filter((c) => c.status === 'completed' && isToday(new Date(c.created_at))).length;
+    const completedToday = candidates.filter((c) => c.status === 'completed' && isTodayIst(c.created_at)).length;
     const errors = candidates.filter((c) => c.score_status === 'error').length;
     const computedScores = candidates.filter((c) => c.score_status === 'computed' && c.ai_score !== null).map((c) => c.ai_score as number);
     const avgScore = computedScores.length ? Math.round(computedScores.reduce((a, b) => a + b, 0) / computedScores.length) : null;
@@ -235,7 +231,7 @@ export function DashboardTable() {
                     <td className="px-4 py-3 text-right">
                       <ScoreBadge score={candidate.ai_score} scoreStatus={candidate.score_status} />
                     </td>
-                    <td className="px-4 py-3 text-slate-300">{new Date(candidate.created_at).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-slate-300">{formatDateTimeIst(candidate.created_at)}</td>
                     <td className="px-4 py-3 text-right">
                       <Link href={`/dashboard/candidates/${candidate.id}`} className="inline-flex rounded-full border border-white/20 bg-white/[0.04] px-3 py-1 text-xs font-medium text-slate-200 transition hover:border-[#F14724]/60 hover:text-[#F14724]">
                         View
