@@ -206,6 +206,28 @@ export async function upsertInterview(input: {
   });
 }
 
+export async function updateInterviewAudioUrl(interviewId: string, audioUrl: string): Promise<void> {
+  await ensureSchema();
+  await db.execute({
+    sql: 'UPDATE interviews SET audio_url = ? WHERE id = ?',
+    args: [audioUrl, interviewId]
+  });
+}
+
+export async function listInterviewsMissingAudio(): Promise<Array<{ id: string; candidate_id: string }>> {
+  await ensureSchema();
+  const result = await db.execute(
+    `SELECT id, candidate_id
+     FROM interviews
+     WHERE (audio_url IS NULL OR TRIM(audio_url) = '')
+     ORDER BY created_at DESC`
+  );
+  return result.rows.map((row) => ({
+    id: String((row as Record<string, unknown>).id),
+    candidate_id: String((row as Record<string, unknown>).candidate_id)
+  }));
+}
+
 export async function getCandidateById(id: string): Promise<CandidateWithInterview | null> {
   await ensureSchema();
   const candidateResult = await db.execute({

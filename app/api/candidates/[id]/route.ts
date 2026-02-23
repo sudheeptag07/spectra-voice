@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { deleteCandidateCascade, getCandidateById, updateCandidateStatus } from '@/lib/db';
+import { deleteCandidateCascade, getCandidateById, updateCandidateStatus, updateInterviewAudioUrl } from '@/lib/db';
+import { fetchConversationAudioUrl } from '@/lib/elevenlabs';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
@@ -11,9 +12,17 @@ const statusSchema = z.object({
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   try {
-    const record = await getCandidateById(params.id);
+    let record = await getCandidateById(params.id);
     if (!record) {
       return NextResponse.json({ error: 'Candidate not found.' }, { status: 404 });
+    }
+
+    if (record.interview && !record.interview.audio_url) {
+      const resolvedAudioUrl = await fetchConversationAudioUrl(record.interview.id);
+      if (resolvedAudioUrl) {
+        await updateInterviewAudioUrl(record.interview.id, resolvedAudioUrl);
+        record = await getCandidateById(params.id);
+      }
     }
 
     return NextResponse.json(record);

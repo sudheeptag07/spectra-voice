@@ -95,6 +95,9 @@ export function CandidateDetail({ id }: Props) {
   if (!record) return <div className="glass-panel p-6 text-sm text-rose-300">Candidate not found.</div>;
 
   const feedback = parseFeedback(record);
+  const audioSource = record.interview
+    ? record.interview.audio_url || `/api/interviews/${record.interview.id}/audio`
+    : null;
   const counts = feedback.criteria.reduce(
     (acc, row) => {
       acc[row.rating] += 1;
@@ -170,8 +173,8 @@ export function CandidateDetail({ id }: Props) {
         </section>
         <section className="glass-panel p-6">
           <h2 className="text-lg font-semibold">Interview Audio</h2>
-          {record.interview?.audio_url ? (
-            <audio controls src={record.interview.audio_url} className="mt-3 w-full" />
+          {audioSource ? (
+            <audio controls src={audioSource} className="mt-3 w-full" />
           ) : (
             <p className="muted mt-3 text-sm">Audio recording not available.</p>
           )}
