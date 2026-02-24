@@ -68,6 +68,21 @@ function SentimentIcon({ rating }: { rating: 'good' | 'neutral' | 'bad' }) {
   return <MinusCircle className="h-4 w-4 text-slate-300" />;
 }
 
+function extractConversationId(interviewId: string | null | undefined): string | null {
+  if (!interviewId) return null;
+  if (interviewId.startsWith('conv_') || interviewId.startsWith('call_')) return interviewId;
+  const convMatch = interviewId.match(/(conv_[a-zA-Z0-9]+)/);
+  if (convMatch?.[1]) return convMatch[1];
+  const callMatch = interviewId.match(/(call_[a-zA-Z0-9]+)/);
+  return callMatch?.[1] ?? null;
+}
+
+function elevenLabsAnalysisUrl(): string {
+  const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID;
+  if (!agentId) return 'https://elevenlabs.io/app/agents';
+  return `https://elevenlabs.io/app/agents/agents/${encodeURIComponent(agentId)}?tab=analysis`;
+}
+
 export function CandidateDetail({ id }: Props) {
   const [record, setRecord] = useState<CandidateWithInterview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,6 +110,7 @@ export function CandidateDetail({ id }: Props) {
   if (!record) return <div className="glass-panel p-6 text-sm text-rose-300">Candidate not found.</div>;
 
   const feedback = parseFeedback(record);
+  const conversationId = extractConversationId(record.interview?.id);
   const audioSource = record.interview
     ? record.interview.audio_url || `/api/interviews/${record.interview.id}/audio`
     : null;
@@ -157,6 +173,39 @@ export function CandidateDetail({ id }: Props) {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
+        <section className="glass-panel p-6">
+          <h2 className="text-lg font-semibold">ElevenLabs Conversation</h2>
+          {conversationId ? (
+            <div className="mt-3 space-y-3">
+              <p className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 font-mono text-xs text-slate-200">
+                {conversationId}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={elevenLabsAnalysisUrl()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex rounded-full border border-white/20 bg-white/[0.04] px-3 py-1 text-xs font-medium text-slate-200 transition hover:border-[#F14724]/60 hover:text-[#F14724]"
+                >
+                  Open ElevenLabs Analysis
+                </a>
+                <button
+                  type="button"
+                  onClick={() => void navigator.clipboard.writeText(conversationId)}
+                  className="inline-flex rounded-full border border-white/20 bg-white/[0.04] px-3 py-1 text-xs font-medium text-slate-200 transition hover:border-[#F14724]/60 hover:text-[#F14724]"
+                >
+                  Copy Conversation ID
+                </button>
+              </div>
+              <p className="text-xs text-slate-400">
+                In ElevenLabs Analysis, filter/search by this conversation ID.
+              </p>
+            </div>
+          ) : (
+            <p className="muted mt-3 text-sm">Conversation ID not available for this interview.</p>
+          )}
+        </section>
+
         <section className="glass-panel p-6">
           <h2 className="text-lg font-semibold">CV Summary</h2>
           <div className="mt-2">
