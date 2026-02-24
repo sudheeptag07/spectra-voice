@@ -20,6 +20,9 @@ export async function ensureSchema() {
       cv_summary TEXT,
       cv_pdf_base64 TEXT,
       cv_file_name TEXT,
+      interview_brief_focus TEXT,
+      interview_brief_concern TEXT,
+      interview_brief_questions TEXT,
       status TEXT NOT NULL DEFAULT 'pending',
       ai_score INTEGER,
       score_status TEXT NOT NULL DEFAULT 'missing',
@@ -98,6 +101,21 @@ async function ensureColumns() {
     await db.execute(`ALTER TABLE candidates ADD COLUMN cv_file_name TEXT`);
   }
 
+  const hasBriefFocus = candidateColumns.rows.some((row) => String((row as Record<string, unknown>).name) === 'interview_brief_focus');
+  if (!hasBriefFocus) {
+    await db.execute(`ALTER TABLE candidates ADD COLUMN interview_brief_focus TEXT`);
+  }
+
+  const hasBriefConcern = candidateColumns.rows.some((row) => String((row as Record<string, unknown>).name) === 'interview_brief_concern');
+  if (!hasBriefConcern) {
+    await db.execute(`ALTER TABLE candidates ADD COLUMN interview_brief_concern TEXT`);
+  }
+
+  const hasBriefQuestions = candidateColumns.rows.some((row) => String((row as Record<string, unknown>).name) === 'interview_brief_questions');
+  if (!hasBriefQuestions) {
+    await db.execute(`ALTER TABLE candidates ADD COLUMN interview_brief_questions TEXT`);
+  }
+
   // Backfill legacy rows so previously computed scores remain visible.
   await db.execute(
     `UPDATE candidates
@@ -119,6 +137,19 @@ function mapCandidate(row: Record<string, unknown>): Candidate {
           ? rawStatus
           : 'missing';
 
+  let briefQuestions: string[] = [];
+  const rawBriefQuestions = (row.interview_brief_questions as string | null) ?? null;
+  if (rawBriefQuestions) {
+    try {
+      const parsed = JSON.parse(rawBriefQuestions) as unknown;
+      if (Array.isArray(parsed)) {
+        briefQuestions = parsed.map((q) => String(q)).filter((q) => q.trim().length > 0).slice(0, 5);
+      }
+    } catch {
+      briefQuestions = [];
+    }
+  }
+
   return {
     id: String(row.id),
     name: String(row.name),
@@ -126,6 +157,9 @@ function mapCandidate(row: Record<string, unknown>): Candidate {
     cv_text: (row.cv_text as string | null) ?? null,
     cv_summary: (row.cv_summary as string | null) ?? null,
     cv_file_name: (row.cv_file_name as string | null) ?? null,
+    interview_brief_focus: (row.interview_brief_focus as string | null) ?? null,
+    interview_brief_concern: (row.interview_brief_concern as string | null) ?? null,
+    interview_brief_questions: briefQuestions,
     status: String(row.status) as CandidateStatus,
     ai_score: row.ai_score === null ? null : Number(row.ai_score),
     score_status: derivedScoreStatus,
@@ -158,6 +192,21 @@ export async function updateCandidateCV(candidateId: string, cvText: string, cvS
   await db.execute({
     sql: 'UPDATE candidates SET cv_text = ?, cv_summary = ?, cv_pdf_base64 = COALESCE(?, cv_pdf_base64), cv_file_name = COALESCE(?, cv_file_name) WHERE id = ?',
     args: [cvText, cvSummary, cvPdfBase64 ?? null, cvFileName ?? null, candidateId]
+  });
+}
+
+export async function updateCandidateInterviewBrief(
+  candidateId: string,
+  input: { focus: string; concern: string; questions: string[] }
+) {
+  await ensureSchema();
+  await db.execute({
+    sql: `UPDATE candidates
+          SET interview_brief_focus = ?,
+              interview_brief_concern = ?,
+              interview_brief_questions = ?
+          WHERE id = ?`,
+    args: [input.focus, input.concern, JSON.stringify(input.questions.slice(0, 5)), candidateId]
   });
 }
 

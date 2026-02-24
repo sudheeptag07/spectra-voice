@@ -22,6 +22,9 @@ export type Candidate = {
   cv_text: string | null;
   cv_summary: string | null;
   cv_file_name: string | null;
+  interview_brief_focus: string | null;
+  interview_brief_concern: string | null;
+  interview_brief_questions: string[];
   status: CandidateStatus;
   ai_score: number | null;
   score_status: ScoreStatus;
@@ -40,4 +43,10 @@ export type Interview = {
 
 export type CandidateWithInterview = Candidate & {
   interview: Interview | null;
+};
+
+export type InterviewBrief = {
+  focus: string;
+  concern: string;
+  questions: string[];
 };

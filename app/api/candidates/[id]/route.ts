@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { deleteCandidateCascade, getCandidateById, updateCandidateStatus, updateInterviewAudioUrl } from '@/lib/db';
+import { deleteCandidateCascade, getCandidateById, updateCandidateInterviewBrief, updateCandidateStatus, updateInterviewAudioUrl } from '@/lib/db';
 import { fetchConversationAudioUrl } from '@/lib/elevenlabs';
+import { generateInterviewBrief } from '@/lib/gemini';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +23,33 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       if (resolvedAudioUrl) {
         await updateInterviewAudioUrl(record.interview.id, resolvedAudioUrl);
         record = await getCandidateById(params.id);
+        if (!record) {
+          return NextResponse.json({ error: 'Candidate not found.' }, { status: 404 });
+        }
+      }
+    }
+
+    const needsBrief =
+      !record.interview_brief_focus ||
+      !record.interview_brief_concern ||
+      !Array.isArray(record.interview_brief_questions) ||
+      record.interview_brief_questions.length !== 5;
+
+    if (needsBrief && record.interview?.transcript?.trim()) {
+      try {
+        const brief = await generateInterviewBrief({
+          cvText: record.cv_text || '',
+          cvSummary: record.cv_summary || '',
+          transcript: record.interview.transcript || '',
+          aiFeedback: record.interview.agent_summary || ''
+        });
+        await updateCandidateInterviewBrief(record.id, brief);
+        record = await getCandidateById(params.id);
+        if (!record) {
+          return NextResponse.json({ error: 'Candidate not found.' }, { status: 404 });
+        }
+      } catch {
+        // Do not fail the detail page if brief generation is temporarily unavailable.
       }
     }
 

@@ -1,4 +1,4 @@
-import type { FeedbackCriterion, InterviewFeedback } from '@/lib/types';
+import type { FeedbackCriterion, InterviewBrief, InterviewFeedback } from '@/lib/types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 type CVAnalysis = {
@@ -117,5 +117,76 @@ ${input.transcript.slice(0, 18000)}`;
     score_status: 'computed',
     overall_feedback: (parsed.overall_feedback as string | undefined)?.trim() || 'Overall fit is under review.',
     criteria
+  };
+}
+
+export async function generateInterviewBrief(input: {
+  cvText: string;
+  cvSummary: string;
+  transcript: string;
+  aiFeedback: string;
+}): Promise<InterviewBrief> {
+  const contextSeed = input.cvSummary
+    .replace(/\s+/g, ' ')
+    .split('.')
+    .map((part) => part.trim())
+    .find((part) => part.length > 12) || 'their resume claims';
+
+  const prompt = `Based on the CV, transcript, and AI evaluation, identify areas where depth is unclear, claims need validation, or performance needs stress-testing. Generate one primary focus area and five highly targeted follow-up questions that probe real experience, ownership, and decision-making.
+
+Return strict JSON with keys:
+- focus (string, one line)
+- concern (string, 1-2 concise lines)
+- questions (array of exactly 5 strings, numbered content not needed)
+
+Rules:
+- Questions must be specific to this candidate's background.
+- Avoid generic prompts like "tell me about yourself".
+- Do not repeat questions already asked in round one.
+- Focus on weak signals, vague claims, unproven impact, ownership depth, real outcomes, and edge cases.
+- Keep output concise and practical.
+
+CV Summary:
+${input.cvSummary.slice(0, 2500)}
+
+CV Text:
+${input.cvText.slice(0, 10000)}
+
+Interview Transcript (Round 1):
+${input.transcript.slice(0, 20000)}
+
+AI Evaluation:
+${input.aiFeedback.slice(0, 3000)}`;
+
+  const result = await generateWithFallback(prompt);
+  let parsed = parseJsonLoose(result.response.text()) as Partial<InterviewBrief>;
+
+  if (typeof parsed !== 'object' || parsed === null || !Array.isArray(parsed.questions)) {
+    const retry = await generateWithFallback(`${prompt}\n\nReturn JSON only. No markdown, no prose.`);
+    parsed = parseJsonLoose(retry.response.text()) as Partial<InterviewBrief>;
+  }
+
+  const questions = Array.isArray(parsed.questions)
+    ? parsed.questions
+        .map((q) => String(q).replace(/^\d+[\).\s-]*/, '').trim())
+        .filter((q) => q.length > 0)
+        .slice(0, 5)
+    : [];
+
+  const normalizedQuestions =
+    questions.length === 5
+      ? questions
+      : [
+          `You mentioned ${contextSeed}. Which single deal outcome changed because of your direct action, and what was the measurable delta?`,
+          'Pick one major claim from your resume and prove it with exact baseline, target, actual result, and your decision ownership.',
+          'Describe a high-stakes deal that failed. What decision did you make, what signal did you miss, and what changed afterward?',
+          'Explain how you handled stakeholder conflict between sales, product, and leadership in one real cycle. What trade-off did you choose?',
+          'If the same opportunity had half the timeline and fewer resources, what would you cut and what would you protect to still deliver results?'
+        ];
+
+  return {
+    focus: String(parsed.focus || 'Validate ownership depth and real commercial impact.').trim(),
+    concern: String(parsed.concern || 'Several claims require deeper evidence on direct ownership, decision quality, and measurable outcomes.').trim(),
+    questions: normalizedQuestions
   };
 }
