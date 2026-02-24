@@ -198,12 +198,34 @@ export async function upsertInterview(input: {
     sql: `INSERT INTO interviews (id, candidate_id, transcript, agent_summary, feedback_json, audio_url)
       VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
-      transcript = excluded.transcript,
-      agent_summary = excluded.agent_summary,
-      feedback_json = excluded.feedback_json,
-      audio_url = excluded.audio_url`,
+      transcript = CASE
+        WHEN LENGTH(TRIM(COALESCE(excluded.transcript, ''))) > LENGTH(TRIM(COALESCE(interviews.transcript, '')))
+        THEN excluded.transcript
+        ELSE interviews.transcript
+      END,
+      agent_summary = CASE
+        WHEN LENGTH(TRIM(COALESCE(excluded.transcript, ''))) > LENGTH(TRIM(COALESCE(interviews.transcript, '')))
+        THEN excluded.agent_summary
+        ELSE COALESCE(interviews.agent_summary, excluded.agent_summary)
+      END,
+      feedback_json = CASE
+        WHEN LENGTH(TRIM(COALESCE(excluded.transcript, ''))) > LENGTH(TRIM(COALESCE(interviews.transcript, '')))
+        THEN excluded.feedback_json
+        ELSE COALESCE(interviews.feedback_json, excluded.feedback_json)
+      END,
+      audio_url = COALESCE(NULLIF(TRIM(excluded.audio_url), ''), interviews.audio_url)`,
     args: [input.id, input.candidateId, input.transcript, input.agentSummary, input.feedbackJson ? JSON.stringify(input.feedbackJson) : null, input.audioUrl]
   });
+}
+
+export async function getInterviewById(id: string): Promise<Interview | null> {
+  await ensureSchema();
+  const result = await db.execute({
+    sql: 'SELECT * FROM interviews WHERE id = ? LIMIT 1',
+    args: [id]
+  });
+  const row = result.rows[0] as Record<string, unknown> | undefined;
+  return row ? mapInterview(row) : null;
 }
 
 export async function updateInterviewAudioUrl(interviewId: string, audioUrl: string): Promise<void> {

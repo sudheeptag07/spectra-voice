@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCandidateById, updateCandidateScore, updateCandidateScoreStatus, updateCandidateStatus, upsertInterview } from '@/lib/db';
+import { getCandidateById, getInterviewById, updateCandidateScore, updateCandidateScoreStatus, updateCandidateStatus, upsertInterview } from '@/lib/db';
 import { scoreInterview } from '@/lib/gemini';
 import type { InterviewFeedback } from '@/lib/types';
 
@@ -193,7 +193,13 @@ export async function POST(request: Request) {
     }
 
     const callId = pickCallId(body, candidateId);
-    const transcript = pickTranscript(body);
+    const incomingTranscript = pickTranscript(body);
+    const existingInterview = await getInterviewById(callId);
+    const existingTranscript = existingInterview?.transcript || '';
+    const transcript =
+      incomingTranscript.trim().length >= existingTranscript.trim().length
+        ? incomingTranscript
+        : existingTranscript;
     const audioUrl = pickAudioUrl(body) || (await fetchAudioUrlFromElevenLabs(callId));
 
     let score: number | null = null;
@@ -232,7 +238,7 @@ export async function POST(request: Request) {
         };
         agentSummary = feedback.overall_feedback || 'Interview captured, but Gemini scoring failed for this attempt.';
       }
-    } else {
+    } else if (!existingInterview?.feedback_json) {
       scoreStatus = 'missing';
       feedback = {
         overall_score: null,
@@ -241,6 +247,17 @@ export async function POST(request: Request) {
         overall_feedback: 'Interview captured, but transcript was empty in webhook payload.'
       };
       agentSummary = feedback.overall_feedback || 'Interview captured, but transcript was empty in webhook payload.';
+    } else {
+      // Preserve already-scored interview state when webhook delivers a partial/empty follow-up event.
+      scoreStatus = candidate.score_status;
+      if (existingInterview.feedback_json) {
+        try {
+          feedback = JSON.parse(existingInterview.feedback_json) as InterviewFeedback;
+        } catch {
+          // Ignore malformed legacy JSON and keep fallback feedback payload.
+        }
+      }
+      agentSummary = existingInterview.agent_summary || agentSummary;
     }
 
     await upsertInterview({
@@ -256,9 +273,13 @@ export async function POST(request: Request) {
       await updateCandidateScore(candidateId, score);
     } else {
       if (scoreStatus === 'error') {
-        await updateCandidateScoreStatus(candidateId, 'error');
+        if (candidate.score_status !== 'computed') {
+          await updateCandidateScoreStatus(candidateId, 'error');
+        }
       } else if (scoreStatus === 'missing') {
-        await updateCandidateScoreStatus(candidateId, 'missing');
+        if (candidate.score_status !== 'computed') {
+          await updateCandidateScoreStatus(candidateId, 'missing');
+        }
       } else {
         await updateCandidateStatus(candidateId, 'completed');
       }
