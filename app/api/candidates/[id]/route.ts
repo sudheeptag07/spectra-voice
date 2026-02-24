@@ -35,7 +35,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       !Array.isArray(record.interview_brief_questions) ||
       record.interview_brief_questions.length !== 5;
 
-    if (needsBrief && record.interview?.transcript?.trim()) {
+    if (record.status === 'completed' && needsBrief && record.interview?.transcript?.trim()) {
       try {
         const brief = await generateInterviewBrief({
           cvText: record.cv_text || '',
