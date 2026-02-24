@@ -250,6 +250,34 @@ export async function listInterviewsMissingAudio(): Promise<Array<{ id: string; 
   }));
 }
 
+export async function listAllInterviews(): Promise<Array<{ id: string; candidate_id: string; transcript: string | null }>> {
+  await ensureSchema();
+  const result = await db.execute(
+    `SELECT id, candidate_id, transcript
+     FROM interviews
+     ORDER BY created_at DESC`
+  );
+  return result.rows.map((row) => ({
+    id: String((row as Record<string, unknown>).id),
+    candidate_id: String((row as Record<string, unknown>).candidate_id),
+    transcript: ((row as Record<string, unknown>).transcript as string | null) ?? null
+  }));
+}
+
+export async function updateInterviewTranscriptIfLonger(interviewId: string, transcript: string): Promise<boolean> {
+  await ensureSchema();
+  const next = transcript.trim();
+  if (!next) return false;
+  const updated = await db.execute({
+    sql: `UPDATE interviews
+          SET transcript = ?
+          WHERE id = ?
+            AND LENGTH(TRIM(COALESCE(?, ''))) > LENGTH(TRIM(COALESCE(transcript, '')))`,
+    args: [next, interviewId, next]
+  });
+  return Number(updated.rowsAffected ?? 0) > 0;
+}
+
 export async function getCandidateById(id: string): Promise<CandidateWithInterview | null> {
   await ensureSchema();
   const candidateResult = await db.execute({
