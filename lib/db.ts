@@ -134,12 +134,17 @@ function mapCandidate(row: Record<string, unknown>): Candidate {
         nextRoundQuestions = parsed
           .map((item) => {
             const question = String((item as { question?: unknown }).question ?? '').trim();
-            const reason = String((item as { reason?: unknown }).reason ?? '').trim();
+            const why_skylark = String(
+              (item as { why_skylark?: unknown; reason?: unknown }).why_skylark ??
+              (item as { why_skylark?: unknown; reason?: unknown }).reason ??
+              ''
+            ).trim();
+            const expected_outcome = String((item as { expected_outcome?: unknown }).expected_outcome ?? '').trim();
             const evidence = String((item as { evidence?: unknown }).evidence ?? '').trim();
-            return { question, reason, evidence };
+            return { question, why_skylark, expected_outcome, evidence };
           })
-          .filter((item) => item.question && item.reason && item.evidence)
-          .slice(0, 5);
+          .filter((item) => item.question && item.why_skylark && item.expected_outcome && item.evidence)
+          .slice(0, 7);
       }
     } catch {
       nextRoundQuestions = [];
@@ -198,7 +203,7 @@ export async function updateCandidateNextRoundQuestions(
     sql: `UPDATE candidates
           SET next_round_questions = ?
           WHERE id = ?`,
-    args: [JSON.stringify(questions.slice(0, 5)), candidateId]
+    args: [JSON.stringify(questions.slice(0, 7)), candidateId]
   });
 }
 

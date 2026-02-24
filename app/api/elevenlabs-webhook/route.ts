@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getCandidateById, getInterviewById, updateCandidateScore, updateCandidateScoreStatus, updateCandidateStatus, upsertInterview } from '@/lib/db';
-import { scoreInterview } from '@/lib/gemini';
+import { getCandidateById, getInterviewById, updateCandidateNextRoundQuestions, updateCandidateScore, updateCandidateScoreStatus, updateCandidateStatus, upsertInterview } from '@/lib/db';
+import { generateNextRoundQuestions, scoreInterview } from '@/lib/gemini';
 import type { InterviewFeedback } from '@/lib/types';
 
 function transcriptToText(transcript: Array<{ role: string; text: string }> = []) {
@@ -282,6 +282,30 @@ export async function POST(request: Request) {
         }
       } else {
         await updateCandidateStatus(candidateId, 'completed');
+      }
+    }
+
+    const hasTailoredQuestions = Array.isArray(candidate.next_round_questions) && candidate.next_round_questions.length >= 5;
+    if (!hasTailoredQuestions && transcript.trim().length > 0 && scoreStatus === 'computed') {
+      try {
+        const tailoredQuestions = await generateNextRoundQuestions({
+          cvText: candidate.cv_text || '',
+          cvSummary: candidate.cv_summary || '',
+          transcript,
+          aiFeedback: [
+            feedback.overall_feedback || '',
+            ...feedback.criteria.map((row) => `${row.name}: ${row.rating} - ${row.note}`)
+          ]
+            .filter(Boolean)
+            .join('\n'),
+          roleApplied: 'GTM Sales Enablement'
+        });
+
+        if (tailoredQuestions.length >= 5) {
+          await updateCandidateNextRoundQuestions(candidateId, tailoredQuestions);
+        }
+      } catch {
+        // Do not fail webhook completion if next-round question generation fails.
       }
     }
 

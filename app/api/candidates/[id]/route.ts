@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { deleteCandidateCascade, getCandidateById, updateCandidateNextRoundQuestions, updateCandidateStatus, updateInterviewAudioUrl } from '@/lib/db';
+import { deleteCandidateCascade, getCandidateById, updateCandidateStatus, updateInterviewAudioUrl } from '@/lib/db';
 import { fetchConversationAudioUrl } from '@/lib/elevenlabs';
-import { generateNextRoundQuestions } from '@/lib/gemini';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
@@ -26,28 +25,6 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
         if (!record) {
           return NextResponse.json({ error: 'Candidate not found.' }, { status: 404 });
         }
-      }
-    }
-
-    const needsNextRoundQuestions =
-      !Array.isArray(record.next_round_questions) || record.next_round_questions.length < 3;
-
-    if (record.status === 'completed' && needsNextRoundQuestions && record.interview?.transcript?.trim()) {
-      try {
-        const questions = await generateNextRoundQuestions({
-          cvText: record.cv_text || '',
-          cvSummary: record.cv_summary || '',
-          transcript: record.interview.transcript || '',
-          aiFeedback: record.interview.agent_summary || '',
-          roleApplied: 'GTM Sales Screening'
-        });
-        await updateCandidateNextRoundQuestions(record.id, questions);
-        record = await getCandidateById(params.id);
-        if (!record) {
-          return NextResponse.json({ error: 'Candidate not found.' }, { status: 404 });
-        }
-      } catch {
-        // Do not fail the detail page if brief generation is temporarily unavailable.
       }
     }
 

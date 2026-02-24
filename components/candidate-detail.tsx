@@ -111,7 +111,7 @@ export function CandidateDetail({ id }: Props) {
 
   const feedback = parseFeedback(record);
   const conversationId = extractConversationId(record.interview?.id);
-  const nextRoundQuestions = Array.isArray(record.next_round_questions) ? record.next_round_questions.slice(0, 5) : [];
+  const nextRoundQuestions = Array.isArray(record.next_round_questions) ? record.next_round_questions.slice(0, 7) : [];
   const audioSource = record.interview
     ? record.interview.audio_url || `/api/interviews/${record.interview.id}/audio`
     : null;
@@ -175,7 +175,7 @@ export function CandidateDetail({ id }: Props) {
 
           <section className="glass-panel bg-white/[0.035] p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold">Next Round - Questions (Tailored to This Candidate)</h2>
+              <h2 className="text-lg font-semibold">Next Round - Tailored Questions (GTM Sales Enablement)</h2>
               {nextRoundQuestions.length > 0 ? (
                 <button
                   type="button"
@@ -197,10 +197,11 @@ export function CandidateDetail({ id }: Props) {
               <ol className="mt-4 space-y-3">
                 {nextRoundQuestions.map((row, index) => (
                   <li key={`${index}-${row.question}`} className="rounded-xl border border-white/10 bg-black/15 px-3 py-3">
-                    <p className="text-sm font-semibold text-slate-100">
+                    <p className="overflow-hidden text-sm font-semibold text-slate-100 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
                       {index + 1}. {row.question}
                     </p>
-                    <p className="mt-1 text-xs text-slate-400">{row.reason}</p>
+                    <p className="mt-1 truncate text-xs text-slate-400">{row.why_skylark}</p>
+                    <p className="mt-1 truncate text-xs text-slate-400">{row.expected_outcome}</p>
                     <span className="mt-2 inline-flex rounded-full border border-white/15 bg-white/[0.04] px-2 py-0.5 text-[11px] text-slate-300">
                       {row.evidence}
                     </span>
@@ -208,7 +209,7 @@ export function CandidateDetail({ id }: Props) {
                 ))}
               </ol>
             ) : (
-              <p className="mt-4 text-sm text-slate-300">No tailored next-round questions generated yet.</p>
+              <p className="mt-4 text-sm text-slate-300">Insufficient evidence to generate tailored GTM enablement questions.</p>
             )}
           </section>
         </div>

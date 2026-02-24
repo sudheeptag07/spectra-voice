@@ -10,7 +10,8 @@ export type FeedbackCriterion = {
 
 export type NextRoundQuestion = {
   question: string;
-  reason: string;
+  why_skylark: string;
+  expected_outcome: string;
   evidence: string;
 };
 

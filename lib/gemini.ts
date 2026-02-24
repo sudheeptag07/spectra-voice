@@ -127,9 +127,11 @@ export async function generateNextRoundQuestions(input: {
   aiFeedback: string;
   roleApplied: string;
 }): Promise<NextRoundQuestion[]> {
-  const prompt = `Generate 3-5 tailored next-round interview questions for a GTM/Sales hiring manager.
+  const prompt = `Generate 5-7 tailored next-round interview questions for a GTM Sales Enablement role.
 
 Role applied for: ${input.roleApplied}
+Company context: Skylark operates in infra-tech (drones, hydrology, solar, enterprise clients).
+Role expectations: convert technical solutions into sales narratives, improve win rates/sales velocity, drive structured GTM execution.
 
 You MUST use:
 - Candidate CV text
@@ -140,7 +142,8 @@ You MUST use:
 Return strict JSON with key:
 - next_round_questions: array of objects with exactly:
   - question (1-2 lines)
-  - reason (1 line, why it matters for Skylark + this role)
+  - why_skylark (1 line, why it matters for Skylark's GTM stage/complexity)
+  - expected_outcome (1 line, what a strong answer should demonstrate)
   - evidence (short tag referencing specific source, e.g. "CV: ex-Gartner channel", "Transcript: struggled with pricing")
 
 Hard rules:
@@ -148,6 +151,9 @@ Hard rules:
 - If no evidence exists for a question, do not generate that question.
 - Avoid generic/templated questions.
 - At least 2 questions must probe the candidate's biggest inferred risk area.
+- At least 1 question must test depth behind a strong CV claim.
+- At least 1 question must test ability to translate technical products into sales narratives.
+- At least 1 question must test cross-functional alignment ability.
 - Do not repeat questions already asked in round one.
 - Keep output concise and practical.
 
@@ -175,42 +181,26 @@ ${input.aiFeedback.slice(0, 4000)}`;
     ? parsed.next_round_questions
         .map((row) => ({
           question: String(row.question ?? '').trim(),
-          reason: String(row.reason ?? '').trim(),
+          why_skylark: String(
+            ((row as unknown as { why_skylark?: string; reason?: string }).why_skylark ??
+              (row as unknown as { why_skylark?: string; reason?: string }).reason ??
+              '')
+          ).trim(),
+          expected_outcome: String((row as unknown as { expected_outcome?: string }).expected_outcome ?? '').trim(),
           evidence: String(row.evidence ?? '').trim()
         }))
-        .filter((row) => row.question && row.reason && row.evidence)
-        .slice(0, 5)
+        .filter((row) => row.question && row.why_skylark && row.expected_outcome && row.evidence)
+        .slice(0, 7)
     : [];
 
-  const fallbackQuestions: NextRoundQuestion[] = [
-    {
-      question: 'Pick one major revenue-impact claim from your CV and break down baseline, target, actual, and your direct ownership decisions.',
-      reason: 'Skylark needs operators who can prove commercial impact with clear metric ownership in complex sales cycles.',
-      evidence: 'CV: high-impact outcomes claimed without complete metric breakdown'
-    },
-    {
-      question: 'Walk through a deal where procurement or technical validation slowed progress. What exact intervention did you make and what changed?',
-      reason: 'This role requires unblocking long-cycle enterprise deals with multiple stakeholders.',
-      evidence: 'Transcript: limited detail on enterprise stage-friction handling'
-    },
-    {
-      question: 'Describe a failed initiative and the decision you now believe was wrong. What signal did you ignore and how did you correct your operating model?',
-      reason: 'Skylark prioritizes ownership under ambiguity, including transparent failure analysis and corrective action.',
-      evidence: 'Transcript: success examples strong, failure diagnostics underdeveloped'
-    }
-  ];
+  if (questions.length < 5) {
+    return [];
+  }
 
-  const normalizedQuestions: NextRoundQuestion[] =
-    questions.length >= 3
-      ? questions
-      : [
-          ...questions,
-          ...fallbackQuestions
-        ].slice(0, 5);
-
-  return normalizedQuestions.map((row) => ({
+  return questions.map((row) => ({
     question: row.question.slice(0, 320),
-    reason: row.reason.slice(0, 220),
-    evidence: row.evidence.slice(0, 140)
+    why_skylark: row.why_skylark.slice(0, 220),
+    expected_outcome: row.expected_outcome.slice(0, 220),
+    evidence: row.evidence.slice(0, 160)
   }));
 }
